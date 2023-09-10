@@ -1,5 +1,7 @@
 import { UserConfig } from "types";
 import * as crypto from 'crypto';
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import https from 'https';
 
 const LIB_VERSION = '1.0.0';
 
@@ -137,48 +139,48 @@ export class Uclbrt {
       throw new Error('cURL functions are not available.');
     }
 
-    const header: { [key: string]: string } = {};
+    const headers: { [key: string]: string } = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json;charset=utf-8',
+      'User-Agent': 'uclbrt-nodejs/' + LIB_VERSION,
+    };
+
     if (auth) {
-      header['Authorization'] = auth;
+      headers['Authorization'] = auth;
       this.log('request auth:', auth);
     }
-    const options: RequestInit = {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json;charset=utf-8',
-        'User-Agent': 'uclbrt-nodejs/' + LIB_VERSION,
-        ...header,
-      },
-      redirect: 'follow',
+
+    const config: AxiosRequestConfig = {
+      method: 'post',
+      url: data ? url : `${url}?${this.objectToQuery(data)}`,
+      headers,
+      data: data ? JSON.stringify(data) : undefined,
+      maxRedirects: 3,
+      timeout: 30000,
+      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     };
-    if (!data) {
-      options.body = JSON.stringify(data);
-    } else {
-      // append data to url
-      const query = this.objectToQuery(data);
-      if (url.indexOf('?') == -1) {
-        url += '?' + query;
-      } else {
-        url += '&' + query;
-      }
-    }
 
     this.log('request data:', data);
-    const response = await fetch(url, options);
-    const resultStr = await response.text();
-    this.log('server return:', resultStr);
-    if (response.status != 200) {
-      throw new Error(resultStr);
+
+    try {
+      const response: AxiosResponse = await axios(config);
+
+      this.log('server return:', response.data);
+
+      if (response.status !== 200) {
+        throw new Error(response.data);
+      }
+
+      const result = response.data;
+
+      if (!result || result.status !== 200) {
+        throw new Error(result.info);
+      }
+
+      return result;
+    } catch (error: any) {
+      throw new Error(error.response?.data || error.message);
     }
-    const result = JSON.parse(resultStr);
-    if (!result) {
-      throw new Error(resultStr);
-    }
-    if (result.status != 200) {
-      throw new Error(result.info);
-    }
-    return result;
   }
 
   setCommunityNo(communityNo: number): void {

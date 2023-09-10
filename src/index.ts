@@ -1,2 +1,2 @@
-export * from 'types';
-export * from 'uclbrt';
+export * from './types';
+export * from './uclbrt';
