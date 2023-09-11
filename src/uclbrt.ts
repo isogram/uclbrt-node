@@ -4,7 +4,7 @@ import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import https from 'https';
 import qs from 'querystring';
 
-const LIB_VERSION = '1.0.0';
+const LIB_VERSION = '1.0.1';
 
 export class Uclbrt {
   accountSid: string;
