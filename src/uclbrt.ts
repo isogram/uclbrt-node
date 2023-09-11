@@ -2,6 +2,7 @@ import { UserConfig } from 'types';
 import * as crypto from 'crypto';
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import https from 'https';
+import qs from 'querystring';
 
 const LIB_VERSION = '1.0.0';
 
@@ -122,9 +123,7 @@ export class Uclbrt {
       throw new Error('time format error.');
     }
     const dt = new Date(`20${t[0]}-${t[1]}-${t[2]} ${t[3]}:${t[4]}:00`);
-    const dt2 = new Date(
-      dt.toLocaleString('en-US', { timeZone: this.communityTimezone })
-    );
+    const dt2 = new Date(dt.toLocaleString('en-US', { timeZone: this.communityTimezone }));
     return dt2.toISOString().replace(/-|:|T/g, '').slice(2, 12);
   }
 
@@ -142,7 +141,7 @@ export class Uclbrt {
 
     const headers: { [key: string]: string } = {
       Accept: 'application/json',
-      'Content-Type': 'application/json;charset=utf-8',
+      'Content-Type': 'application/x-www-form-urlencoded',
       'User-Agent': 'uclbrt-nodejs/' + LIB_VERSION,
     };
 
@@ -153,9 +152,9 @@ export class Uclbrt {
 
     const config: AxiosRequestConfig = {
       method: 'post',
-      url: data ? url : `${url}?${this.objectToQuery(data)}`,
+      url: url,
       headers,
-      data: data ? JSON.stringify(data) : undefined,
+      data: data ? qs.stringify(data) : undefined,
       maxRedirects: 3,
       timeout: 30000,
       httpsAgent: new https.Agent({ rejectUnauthorized: false }),
@@ -241,9 +240,7 @@ export class Uclbrt {
     };
     return this.curlPost(url, auth, data).then((result) => {
       if (!result.cardNo) {
-        throw new Error(
-          'the cardNo is not found in the return result of the server.'
-        );
+        throw new Error('the cardNo is not found in the return result of the server.');
       }
       return result.cardNo;
     });
@@ -261,18 +258,7 @@ export class Uclbrt {
     times: number = 0
   ): Promise<string> {
     this.log('called createRoomKey');
-    return this.create(
-      mobile,
-      areaCode,
-      roomNo,
-      floorNo,
-      buildNo,
-      startTime,
-      endTime,
-      sendSms,
-      0,
-      times
-    );
+    return this.create(mobile, areaCode, roomNo, floorNo, buildNo, startTime, endTime, sendSms, 0, times);
   }
 
   async createFloorKey(
@@ -285,17 +271,7 @@ export class Uclbrt {
     sendSms: number = 0
   ): Promise<string> {
     this.log('called createFloorKey');
-    return this.create(
-      mobile,
-      areaCode,
-      '',
-      floorNo,
-      buildNo,
-      startTime,
-      endTime,
-      sendSms,
-      1
-    );
+    return this.create(mobile, areaCode, '', floorNo, buildNo, startTime, endTime, sendSms, 1);
   }
 
   async createBuildingKey(
@@ -307,17 +283,7 @@ export class Uclbrt {
     sendSms: number = 0
   ): Promise<string> {
     this.log('called createBuildingKey');
-    return this.create(
-      mobile,
-      areaCode,
-      '',
-      '',
-      buildNo,
-      startTime,
-      endTime,
-      sendSms,
-      2
-    );
+    return this.create(mobile, areaCode, '', '', buildNo, startTime, endTime, sendSms, 2);
   }
 
   async createRoomLostKey(
@@ -350,9 +316,7 @@ export class Uclbrt {
     };
     return this.curlPost(url, auth, data).then((result) => {
       if (!result.cardNo) {
-        throw new Error(
-          'the cardNo is not found in the return result of the server.'
-        );
+        throw new Error('the cardNo is not found in the return result of the server.');
       }
       return result.cardNo;
     });
@@ -391,18 +355,13 @@ export class Uclbrt {
     };
     return this.curlPost(url, auth, data).then((result) => {
       if (!result.cardNo) {
-        throw new Error(
-          'the cardNo is not found in the return result of the server.'
-        );
+        throw new Error('the cardNo is not found in the return result of the server.');
       }
       return result.cardNo;
     });
   }
 
-  async reportCardLost(
-    cardNo: string,
-    wholeRoom: boolean = false
-  ): Promise<boolean> {
+  async reportCardLost(cardNo: string, wholeRoom: boolean = false): Promise<boolean> {
     this.log('called create room lost key');
     this.checkCommunityNo();
     const batch = new Date().toISOString().replace(/-|:|T/g, '').slice(0, 14);
@@ -421,12 +380,7 @@ export class Uclbrt {
     });
   }
 
-  async getLink(
-    mobile: string,
-    areaCode: string,
-    cardNo: string = '',
-    cardType: number = 0
-  ): Promise<string> {
+  async getLink(mobile: string, areaCode: string, cardNo: string = '', cardType: number = 0): Promise<string> {
     this.log('called getLink');
     if (!mobile) {
       throw new Error('mobile cannot be empty.');
@@ -445,36 +399,22 @@ export class Uclbrt {
 
     const query = this.objectToQuery(data);
     const encrypted = this.publicEncrypt(query);
-    const link = `${this.cardHost}apiLogin/?data=${encodeURIComponent(
-      encrypted
-    )}`;
+    const link = `${this.cardHost}apiLogin/?data=${encodeURIComponent(encrypted)}`;
     this.log('got link:', link);
     return link;
   }
 
-  async getRoomKeyLink(
-    mobile: string,
-    areaCode: string,
-    cardNo: string = ''
-  ): Promise<string> {
+  async getRoomKeyLink(mobile: string, areaCode: string, cardNo: string = ''): Promise<string> {
     this.log('called getRoomKeyLink');
     return this.getLink(mobile, areaCode, cardNo, 0);
   }
 
-  async getFloorKeyLink(
-    mobile: string,
-    areaCode: string,
-    cardNo: string = ''
-  ): Promise<string> {
+  async getFloorKeyLink(mobile: string, areaCode: string, cardNo: string = ''): Promise<string> {
     this.log('called getFloorKeyLink');
     return this.getLink(mobile, areaCode, cardNo, 1);
   }
 
-  async getBuildingKeyLink(
-    mobile: string,
-    areaCode: string,
-    cardNo: string = ''
-  ): Promise<string> {
+  async getBuildingKeyLink(mobile: string, areaCode: string, cardNo: string = ''): Promise<string> {
     this.log('called getBuildingKeyLink');
     return this.getLink(mobile, areaCode, cardNo, 2);
   }
@@ -507,26 +447,11 @@ export class Uclbrt {
     return this.curlPost(url, auth, data);
   }
 
-  async getRoomKeyImage(
-    mobile: string,
-    areaCode: string,
-    cardNo: string,
-    openEndTime: string = ''
-  ): Promise<string> {
+  async getRoomKeyImage(mobile: string, areaCode: string, cardNo: string, openEndTime: string = ''): Promise<string> {
     this.log('called getRoomKeyImage');
-    const result = await this.getShare(
-      mobile,
-      areaCode,
-      cardNo,
-      0,
-      openEndTime,
-      0,
-      1
-    );
+    const result = await this.getShare(mobile, areaCode, cardNo, 0, openEndTime, 0, 1);
     if (!result.baseImg) {
-      throw new Error(
-        'the baseImg is not found in the return result of the server.'
-      );
+      throw new Error('the baseImg is not found in the return result of the server.');
     }
     return result.baseImg;
   }
@@ -539,19 +464,9 @@ export class Uclbrt {
     lockType: number = 0
   ): Promise<string> {
     this.log('called getFloorKeyImage');
-    const result = await this.getShare(
-      mobile,
-      areaCode,
-      cardNo,
-      1,
-      openEndTime,
-      lockType,
-      1
-    );
+    const result = await this.getShare(mobile, areaCode, cardNo, 1, openEndTime, lockType, 1);
     if (!result.baseImg) {
-      throw new Error(
-        'the baseImg is not found in the return result of the server.'
-      );
+      throw new Error('the baseImg is not found in the return result of the server.');
     }
     return result.baseImg;
   }
@@ -564,49 +479,27 @@ export class Uclbrt {
     lockType: number = 0
   ): Promise<string> {
     this.log('called getBuildingKeyImage');
-    const result = await this.getShare(
-      mobile,
-      areaCode,
-      cardNo,
-      2,
-      openEndTime,
-      lockType,
-      1
-    );
+    const result = await this.getShare(mobile, areaCode, cardNo, 2, openEndTime, lockType, 1);
     if (!result.baseImg) {
-      throw new Error(
-        'the baseImg is not found in the return result of the server.'
-      );
+      throw new Error('the baseImg is not found in the return result of the server.');
     }
     return result.baseImg;
   }
 
-  async getRoomKeyString(
-    mobile: string,
-    areaCode: string,
-    mac: string
-  ): Promise<string> {
+  async getRoomKeyString(mobile: string, areaCode: string, mac: string): Promise<string> {
     this.log('called getRoomKeyString');
     const result = await this.getShare(mobile, areaCode, mac, 0, '', 0, 2);
     if (!result.bleStr) {
-      throw new Error(
-        'the bleStr is not found in the return result of the server.'
-      );
+      throw new Error('the bleStr is not found in the return result of the server.');
     }
     return result.bleStr;
   }
 
-  async getQRPRoomCipher(
-    mobile: string,
-    areaCode: string,
-    cardNo: string
-  ): Promise<string> {
+  async getQRPRoomCipher(mobile: string, areaCode: string, cardNo: string): Promise<string> {
     this.log('called getQRPRoomCipher');
     const result = await this.getShare(mobile, areaCode, cardNo, 0, '', 0, 4);
     if (!result.cipher) {
-      throw new Error(
-        'the cipher is not found in the return result of the server.'
-      );
+      throw new Error('the cipher is not found in the return result of the server.');
     }
     return result.cipher;
   }
@@ -871,8 +764,8 @@ export class Uclbrt {
       recordType,
       holderFrom,
     };
-    data['sig'] = this.getSig3(data);
-    const url = `${this.apiHost}Home/Records/queryByRoom`;
+    const sig = this.getSig3(data);
+    const url = `${this.apiHost}Home/Records/queryByRoom?sig=${sig}`;
     return this.curlPost(url, '', data).then((result) => {
       if (!result.data) {
         throw new Error('server returns an unexpected value.');
@@ -888,8 +781,8 @@ export class Uclbrt {
       timestamp: Math.floor(Date.now() / 1000),
       communityNo: this.communityNo.toString(),
     };
-    data['sig'] = this.getSig3(data);
-    const url = `${this.apiHost}Home/Records/fetchRoomInfo`;
+    const sig = this.getSig3(data);
+    const url = `${this.apiHost}Home/Records/fetchRoomInfo?sig=${sig}`;
     return this.curlPost(url, '', data).then((result) => {
       if (!result.data) {
         throw new Error('server returns an unexpected value.');
@@ -905,8 +798,8 @@ export class Uclbrt {
       timestamp: Math.floor(Date.now() / 1000),
       communityNo: this.communityNo.toString(),
     };
-    data['sig'] = this.getSig3(data);
-    const url = `${this.apiHost}Home/Records/getBoxInfo`;
+    const sig = this.getSig3(data);
+    const url = `${this.apiHost}Home/Records/getBoxInfo?sig=${sig}`;
     return this.curlPost(url, '', data).then((result) => {
       if (!result.data) {
         throw new Error('server returns an unexpected value.');
