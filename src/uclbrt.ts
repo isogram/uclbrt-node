@@ -1,12 +1,11 @@
 import { UserConfig } from "types";
-import * as crypto from 'crypto';
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
-import https from 'https';
+import * as crypto from "crypto";
+import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
+import https from "https";
 
-const LIB_VERSION = '1.0.0';
+const LIB_VERSION = "1.0.0";
 
 export class Uclbrt {
-
   accountSid: string;
   authToken: string;
   apiHost: string;
@@ -27,41 +26,41 @@ export class Uclbrt {
 
   constructor(config: UserConfig) {
     const defaultConfig: UserConfig = {
-      accountSid: '',
-      authToken: '',
-      apiHost: 'https://api.uclbrt.com/',
-      cardHost: 'http://cz.uclbrt.com/',
+      accountSid: "",
+      authToken: "",
+      apiHost: "https://api.uclbrt.com/",
+      cardHost: "http://cz.uclbrt.com/",
       debug: false,
     };
     const mergedConfig = { ...defaultConfig, ...config };
     if (!mergedConfig.accountSid) {
-      throw new Error('accountSid cannot be empty.');
+      throw new Error("accountSid cannot be empty.");
     }
     this.accountSid = mergedConfig.accountSid;
     if (!mergedConfig.authToken) {
-      throw new Error('authToken cannot be empty.');
+      throw new Error("authToken cannot be empty.");
     }
     this.authToken = mergedConfig.authToken;
     const apiHost = new URL(mergedConfig.apiHost);
     if (!apiHost.hostname) {
-      throw new Error('apiHost is not a valid domain.');
+      throw new Error("apiHost is not a valid domain.");
     }
     this.apiHost = mergedConfig.apiHost;
     const cardHost = new URL(mergedConfig.cardHost);
     if (!cardHost.hostname) {
-      throw new Error('cardHost is not a valid domain.');
+      throw new Error("cardHost is not a valid domain.");
     }
     this.cardHost = mergedConfig.cardHost;
     this.debug = mergedConfig.debug;
-    this.communityTimezone = 'Asia/Shanghai';
+    this.communityTimezone = "Asia/Shanghai";
     this.localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   }
 
   protected objectToQuery(data: { [key: string]: any }): string {
     const keys = Object.keys(data);
     keys.sort();
-    const sortedData = keys.map(key => `${key}=${data[key]}`);
-    const query = sortedData.join('&');
+    const sortedData = keys.map((key) => `${key}=${data[key]}`);
+    const query = sortedData.join("&");
     return query;
   }
 
@@ -76,28 +75,28 @@ export class Uclbrt {
   }
 
   protected getSig(batch: string): string {
-    const hash = crypto.createHash('md5');
+    const hash = crypto.createHash("md5");
     hash.update(this.accountSid + this.authToken + batch);
-    return hash.digest('hex').toUpperCase();
+    return hash.digest("hex").toUpperCase();
   }
 
   protected getSig2(data: { [key: string]: any }): string {
-    const imploded = Object.values(data).join('');
-    const hash = crypto.createHash('md5');
+    const imploded = Object.values(data).join("");
+    const hash = crypto.createHash("md5");
     hash.update(imploded + this.authToken);
-    return hash.digest('hex');
+    return hash.digest("hex");
   }
 
   protected getSig3(data: { [key: string]: any }): string {
-    data['authToken'] = this.authToken;
+    data["authToken"] = this.authToken;
     const query = this.objectToQuery(data);
-    const hash = crypto.createHash('sha1');
+    const hash = crypto.createHash("sha1");
     hash.update(query);
-    return hash.digest('hex');
+    return hash.digest("hex");
   }
 
   protected getAuth(batch: string): string {
-    return Buffer.from(`${this.accountSid}:${batch}`).toString('base64');
+    return Buffer.from(`${this.accountSid}:${batch}`).toString("base64");
   }
 
   // convert above to typescript
@@ -108,50 +107,52 @@ export class Uclbrt {
 
   protected publicEncrypt(data: string): string {
     const encrypted = crypto.publicEncrypt(this.getPk(), Buffer.from(data));
-    return encrypted.toString('base64');
+    return encrypted.toString("base64");
   }
 
   protected toCommunityTime(timeStr: string): string {
-    if ('' === timeStr) {
-      return '';
+    if ("" === timeStr) {
+      return "";
     }
     if (this.communityTimezone == this.localTimezone) {
       return timeStr;
     }
     const t = timeStr.match(/.{2}/g);
     if (!t || t.length != 5) {
-      throw new Error('time format error.');
+      throw new Error("time format error.");
     }
     const dt = new Date(`20${t[0]}-${t[1]}-${t[2]} ${t[3]}:${t[4]}:00`);
-    const dt2 = new Date(dt.toLocaleString('en-US', { timeZone: this.communityTimezone }));
-    return dt2.toISOString().replace(/-|:|T/g, '').slice(2, 12);
+    const dt2 = new Date(
+      dt.toLocaleString("en-US", { timeZone: this.communityTimezone })
+    );
+    return dt2.toISOString().replace(/-|:|T/g, "").slice(2, 12);
   }
 
   protected checkCommunityNo() {
-    if (!this.accountSid) {
-      throw new Error('accountSid cannot be empty.');
+    if (!this.communityNo) {
+      throw new Error("communityNo cannot be empty.");
     }
   }
 
   protected async curlPost(url: string, auth: string, data: any): Promise<any> {
-    this.log('request url:', url);
+    this.log("request url:", url);
     if (!crypto.createHash) {
-      throw new Error('cURL functions are not available.');
+      throw new Error("cURL functions are not available.");
     }
 
     const headers: { [key: string]: string } = {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json;charset=utf-8',
-      'User-Agent': 'uclbrt-nodejs/' + LIB_VERSION,
+      Accept: "application/json",
+      "Content-Type": "application/json;charset=utf-8",
+      "User-Agent": "uclbrt-nodejs/" + LIB_VERSION,
     };
 
     if (auth) {
-      headers['Authorization'] = auth;
-      this.log('request auth:', auth);
+      headers["Authorization"] = auth;
+      this.log("request auth:", auth);
     }
 
     const config: AxiosRequestConfig = {
-      method: 'post',
+      method: "post",
       url: data ? url : `${url}?${this.objectToQuery(data)}`,
       headers,
       data: data ? JSON.stringify(data) : undefined,
@@ -160,12 +161,12 @@ export class Uclbrt {
       httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     };
 
-    this.log('request data:', data);
+    this.log("request data:", data);
 
     try {
       const response: AxiosResponse = await axios(config);
 
-      this.log('server return:', response.data);
+      this.log("server return:", response.data);
 
       if (response.status !== 200) {
         throw new Error(response.data);
@@ -185,7 +186,7 @@ export class Uclbrt {
 
   setCommunityNo(communityNo: number): void {
     if (!communityNo) {
-      throw new Error('communityNo cannot be empty.');
+      throw new Error("communityNo cannot be empty.");
     }
     this.communityNo = communityNo;
   }
@@ -193,22 +194,34 @@ export class Uclbrt {
   // convert above to typescript
   setCommunityTimezone(communityTimezone: string): void {
     if (!communityTimezone) {
-      throw new Error('communityTimezone cannot be empty.');
+      throw new Error("communityTimezone cannot be empty.");
     }
     this.communityTimezone = communityTimezone;
   }
 
   setLocalTimezone(localTimezone: string): void {
     if (!localTimezone) {
-      throw new Error('localTimezone cannot be empty.');
+      throw new Error("localTimezone cannot be empty.");
     }
     this.localTimezone = localTimezone;
   }
 
-  async create(mobile: string, areaCode: string, roomNo: string, floorNo: string = '', buildNo: string = '', startTime: string = '', endTime: string = '', sendSms: number = 0, cardType: number = 0, times: number = 0, opentype: number = 0): Promise<string> {
-    this.log('called create');
+  async create(
+    mobile: string,
+    areaCode: string,
+    roomNo: string,
+    floorNo: string = "",
+    buildNo: string = "",
+    startTime: string = "",
+    endTime: string = "",
+    sendSms: number = 0,
+    cardType: number = 0,
+    times: number = 0,
+    opentype: number = 0
+  ): Promise<string> {
+    this.log("called create");
     this.checkCommunityNo();
-    const batch = new Date().toISOString().replace(/-|:|T/g, '').slice(0, 14);
+    const batch = new Date().toISOString().replace(/-|:|T/g, "").slice(0, 14);
     const sig = this.getSig(batch);
     const url = `${this.apiHost}?c=Qrcode&a=getLink&sig=${sig}`;
     const auth = this.getAuth(batch);
@@ -226,33 +239,99 @@ export class Uclbrt {
       times,
       opentype,
     };
-    return this.curlPost(url, auth, data).then(result => {
+    return this.curlPost(url, auth, data).then((result) => {
       if (!result.cardNo) {
-        throw new Error('the cardNo is not found in the return result of the server.');
+        throw new Error(
+          "the cardNo is not found in the return result of the server."
+        );
       }
       return result.cardNo;
     });
   }
 
-  async createRoomKey(mobile: string, areaCode: string, roomNo: string, floorNo: string = '', buildNo: string = '', startTime: string = '', endTime: string = '', sendSms: number = 0, times: number = 0): Promise<string> {
-    this.log('called createRoomKey');
-    return this.create(mobile, areaCode, roomNo, floorNo, buildNo, startTime, endTime, sendSms, 0, times);
+  async createRoomKey(
+    mobile: string,
+    areaCode: string,
+    roomNo: string,
+    floorNo: string = "",
+    buildNo: string = "",
+    startTime: string = "",
+    endTime: string = "",
+    sendSms: number = 0,
+    times: number = 0
+  ): Promise<string> {
+    this.log("called createRoomKey");
+    return this.create(
+      mobile,
+      areaCode,
+      roomNo,
+      floorNo,
+      buildNo,
+      startTime,
+      endTime,
+      sendSms,
+      0,
+      times
+    );
   }
 
-  async createFloorKey(mobile: string, areaCode: string, floorNo: string, buildNo: string, startTime: string = '', endTime: string = '', sendSms: number = 0): Promise<string> {
-    this.log('called createFloorKey');
-    return this.create(mobile, areaCode, '', floorNo, buildNo, startTime, endTime, sendSms, 1);
+  async createFloorKey(
+    mobile: string,
+    areaCode: string,
+    floorNo: string,
+    buildNo: string,
+    startTime: string = "",
+    endTime: string = "",
+    sendSms: number = 0
+  ): Promise<string> {
+    this.log("called createFloorKey");
+    return this.create(
+      mobile,
+      areaCode,
+      "",
+      floorNo,
+      buildNo,
+      startTime,
+      endTime,
+      sendSms,
+      1
+    );
   }
 
-  async createBuildingKey(mobile: string, areaCode: string, buildNo: string, startTime: string = '', endTime: string = '', sendSms: number = 0): Promise<string> {
-    this.log('called createBuildingKey');
-    return this.create(mobile, areaCode, '', '', buildNo, startTime, endTime, sendSms, 2);
+  async createBuildingKey(
+    mobile: string,
+    areaCode: string,
+    buildNo: string,
+    startTime: string = "",
+    endTime: string = "",
+    sendSms: number = 0
+  ): Promise<string> {
+    this.log("called createBuildingKey");
+    return this.create(
+      mobile,
+      areaCode,
+      "",
+      "",
+      buildNo,
+      startTime,
+      endTime,
+      sendSms,
+      2
+    );
   }
 
-  async createRoomLostKey(mobile: string, areaCode: string, roomNo: string, floorNo: string = '', buildNo: string = '', startTime: string = '', endTime: string = ''): Promise<string> {
-    this.log('called createRoomLostKey');
+  async createRoomLostKey(
+    mobile: string,
+    areaCode: string,
+    roomNo: string,
+    floorNo: string = "",
+    buildNo: string = "",
+    startTime: string = "",
+    endTime: string = ""
+  ): Promise<string> {
+    this.log("called createRoomLostKey");
     this.checkCommunityNo();
-    const batch = new Date().toISOString().replace(/-|:|T/g, '').slice(0, 14);
+    const batch = new Date().toISOString().replace(/-|:|T/g, "").slice(0, 14);
     const sig = this.getSig(batch);
     const url = `${this.apiHost}?c=Qrcode&a=getLink&sig=${sig}`;
     const auth = this.getAuth(batch);
@@ -269,25 +348,36 @@ export class Uclbrt {
       times: 0,
       isLost: 1,
     };
-    return this.curlPost(url, auth, data).then(result => {
+    return this.curlPost(url, auth, data).then((result) => {
       if (!result.cardNo) {
-        throw new Error('the cardNo is not found in the return result of the server.');
+        throw new Error(
+          "the cardNo is not found in the return result of the server."
+        );
       }
       return result.cardNo;
     });
   }
 
-  async generateQRPRoomCipher(mobile: string, areaCode: string, roomNo: string, floorNo: string = '', buildNo: string = '', startTime: string = '', endTime: string = '', cipherType: number = 1): Promise<string> {
-    this.log('called create qrp room cipher');
+  async generateQRPRoomCipher(
+    mobile: string,
+    areaCode: string,
+    roomNo: string,
+    floorNo: string = "",
+    buildNo: string = "",
+    startTime: string = "",
+    endTime: string = "",
+    cipherType: number = 1
+  ): Promise<string> {
+    this.log("called create qrp room cipher");
     this.checkCommunityNo();
-    const batch = new Date().toISOString().replace(/-|:|T/g, '').slice(0, 14);
+    const batch = new Date().toISOString().replace(/-|:|T/g, "").slice(0, 14);
     const sig = this.getSig(batch);
     const url = `${this.apiHost}?c=Qrcode&a=getLink&sig=${sig}`;
     const auth = this.getAuth(batch);
     const startTimeFull = this.toCommunityTime(startTime);
     const endTimeFull = this.toCommunityTime(endTime);
-    const startTimeHour = startTimeFull.slice(0, -2) + '00';
-    const endTimeHour = endTimeFull.slice(0, -2) + '00';
+    const startTimeHour = startTimeFull.slice(0, -2) + "00";
+    const endTimeHour = endTimeFull.slice(0, -2) + "00";
     const data = {
       mobile,
       areaCode,
@@ -299,18 +389,23 @@ export class Uclbrt {
       endTime: endTimeHour,
       cipherType,
     };
-    return this.curlPost(url, auth, data).then(result => {
+    return this.curlPost(url, auth, data).then((result) => {
       if (!result.cardNo) {
-        throw new Error('the cardNo is not found in the return result of the server.');
+        throw new Error(
+          "the cardNo is not found in the return result of the server."
+        );
       }
       return result.cardNo;
     });
   }
 
-  async reportCardLost(cardNo: string, wholeRoom: boolean = false): Promise<boolean> {
-    this.log('called create room lost key');
+  async reportCardLost(
+    cardNo: string,
+    wholeRoom: boolean = false
+  ): Promise<boolean> {
+    this.log("called create room lost key");
     this.checkCommunityNo();
-    const batch = new Date().toISOString().replace(/-|:|T/g, '').slice(0, 14);
+    const batch = new Date().toISOString().replace(/-|:|T/g, "").slice(0, 14);
     const sig = this.getSig(batch);
     const url = `${this.apiHost}?c=Qrcode&a=reportLost&sig=${sig}`;
     const auth = this.getAuth(batch);
@@ -318,7 +413,7 @@ export class Uclbrt {
       cardNo,
       wholeRoom: wholeRoom ? 1 : 0,
     };
-    return this.curlPost(url, auth, data).then(result => {
+    return this.curlPost(url, auth, data).then((result) => {
       if (!result.status || result.status != 200) {
         throw new Error(result.info);
       }
@@ -326,10 +421,15 @@ export class Uclbrt {
     });
   }
 
-  async getLink(mobile: string, areaCode: string, cardNo: string = '', cardType: number = 0): Promise<string> {
-    this.log('called getLink');
+  async getLink(
+    mobile: string,
+    areaCode: string,
+    cardNo: string = "",
+    cardType: number = 0
+  ): Promise<string> {
+    this.log("called getLink");
     if (!mobile) {
-      throw new Error('mobile cannot be empty.');
+      throw new Error("mobile cannot be empty.");
     }
     this.checkCommunityNo();
     const data = {
@@ -345,30 +445,52 @@ export class Uclbrt {
 
     const query = this.objectToQuery(data);
     const encrypted = this.publicEncrypt(query);
-    const link = `${this.cardHost}apiLogin/?data=${encodeURIComponent(encrypted)}`;
-    this.log('got link:', link);
+    const link = `${this.cardHost}apiLogin/?data=${encodeURIComponent(
+      encrypted
+    )}`;
+    this.log("got link:", link);
     return link;
   }
 
-  async getRoomKeyLink(mobile: string, areaCode: string, cardNo: string = ''): Promise<string> {
-    this.log('called getRoomKeyLink');
+  async getRoomKeyLink(
+    mobile: string,
+    areaCode: string,
+    cardNo: string = ""
+  ): Promise<string> {
+    this.log("called getRoomKeyLink");
     return this.getLink(mobile, areaCode, cardNo, 0);
   }
 
-  async getFloorKeyLink(mobile: string, areaCode: string, cardNo: string = ''): Promise<string> {
-    this.log('called getFloorKeyLink');
+  async getFloorKeyLink(
+    mobile: string,
+    areaCode: string,
+    cardNo: string = ""
+  ): Promise<string> {
+    this.log("called getFloorKeyLink");
     return this.getLink(mobile, areaCode, cardNo, 1);
   }
 
-  async getBuildingKeyLink(mobile: string, areaCode: string, cardNo: string = ''): Promise<string> {
-    this.log('called getBuildingKeyLink');
+  async getBuildingKeyLink(
+    mobile: string,
+    areaCode: string,
+    cardNo: string = ""
+  ): Promise<string> {
+    this.log("called getBuildingKeyLink");
     return this.getLink(mobile, areaCode, cardNo, 2);
   }
 
-  async getShare(mobile: string, areaCode: string, roomFlag: string, cardType: number = 0, openEndTime: string = '', lockType: number = 0, resultType: number = 1): Promise<any> {
-    this.log('called getShare');
+  async getShare(
+    mobile: string,
+    areaCode: string,
+    roomFlag: string,
+    cardType: number = 0,
+    openEndTime: string = "",
+    lockType: number = 0,
+    resultType: number = 1
+  ): Promise<any> {
+    this.log("called getShare");
     this.checkCommunityNo();
-    const batch = new Date().toISOString().replace(/-|:|T/g, '').slice(0, 14);
+    const batch = new Date().toISOString().replace(/-|:|T/g, "").slice(0, 14);
     const sig = this.getSig(batch);
     const url = `${this.apiHost}?c=Qrcode&a=getCard&sig=${sig}`;
     const auth = this.getAuth(batch);
@@ -385,55 +507,114 @@ export class Uclbrt {
     return this.curlPost(url, auth, data);
   }
 
-  async getRoomKeyImage(mobile: string, areaCode: string, cardNo: string, openEndTime: string = ''): Promise<string> {
-    this.log('called getRoomKeyImage');
-    const result = await this.getShare(mobile, areaCode, cardNo, 0, openEndTime, 0, 1);
+  async getRoomKeyImage(
+    mobile: string,
+    areaCode: string,
+    cardNo: string,
+    openEndTime: string = ""
+  ): Promise<string> {
+    this.log("called getRoomKeyImage");
+    const result = await this.getShare(
+      mobile,
+      areaCode,
+      cardNo,
+      0,
+      openEndTime,
+      0,
+      1
+    );
     if (!result.baseImg) {
-      throw new Error('the baseImg is not found in the return result of the server.');
+      throw new Error(
+        "the baseImg is not found in the return result of the server."
+      );
     }
     return result.baseImg;
   }
 
-  async getFloorKeyImage(mobile: string, areaCode: string, cardNo: string, openEndTime: string = '', lockType: number = 0): Promise<string> {
-    this.log('called getFloorKeyImage');
-    const result = await this.getShare(mobile, areaCode, cardNo, 1, openEndTime, lockType, 1);
+  async getFloorKeyImage(
+    mobile: string,
+    areaCode: string,
+    cardNo: string,
+    openEndTime: string = "",
+    lockType: number = 0
+  ): Promise<string> {
+    this.log("called getFloorKeyImage");
+    const result = await this.getShare(
+      mobile,
+      areaCode,
+      cardNo,
+      1,
+      openEndTime,
+      lockType,
+      1
+    );
     if (!result.baseImg) {
-      throw new Error('the baseImg is not found in the return result of the server.');
+      throw new Error(
+        "the baseImg is not found in the return result of the server."
+      );
     }
     return result.baseImg;
   }
 
-  async getBuildingKeyImage(mobile: string, areaCode: string, cardNo: string, openEndTime: string = '', lockType: number = 0): Promise<string> {
-    this.log('called getBuildingKeyImage');
-    const result = await this.getShare(mobile, areaCode, cardNo, 2, openEndTime, lockType, 1);
+  async getBuildingKeyImage(
+    mobile: string,
+    areaCode: string,
+    cardNo: string,
+    openEndTime: string = "",
+    lockType: number = 0
+  ): Promise<string> {
+    this.log("called getBuildingKeyImage");
+    const result = await this.getShare(
+      mobile,
+      areaCode,
+      cardNo,
+      2,
+      openEndTime,
+      lockType,
+      1
+    );
     if (!result.baseImg) {
-      throw new Error('the baseImg is not found in the return result of the server.');
+      throw new Error(
+        "the baseImg is not found in the return result of the server."
+      );
     }
     return result.baseImg;
   }
 
-  async getRoomKeyString(mobile: string, areaCode: string, mac: string): Promise<string> {
-    this.log('called getRoomKeyString');
-    const result = await this.getShare(mobile, areaCode, mac, 0, '', 0, 2);
+  async getRoomKeyString(
+    mobile: string,
+    areaCode: string,
+    mac: string
+  ): Promise<string> {
+    this.log("called getRoomKeyString");
+    const result = await this.getShare(mobile, areaCode, mac, 0, "", 0, 2);
     if (!result.bleStr) {
-      throw new Error('the bleStr is not found in the return result of the server.');
+      throw new Error(
+        "the bleStr is not found in the return result of the server."
+      );
     }
     return result.bleStr;
   }
 
-  async getQRPRoomCipher(mobile: string, areaCode: string, cardNo: string): Promise<string> {
-    this.log('called getQRPRoomCipher');
-    const result = await this.getShare(mobile, areaCode, cardNo, 0, '', 0, 4);
+  async getQRPRoomCipher(
+    mobile: string,
+    areaCode: string,
+    cardNo: string
+  ): Promise<string> {
+    this.log("called getQRPRoomCipher");
+    const result = await this.getShare(mobile, areaCode, cardNo, 0, "", 0, 4);
     if (!result.cipher) {
-      throw new Error('the cipher is not found in the return result of the server.');
+      throw new Error(
+        "the cipher is not found in the return result of the server."
+      );
     }
     return result.cipher;
   }
 
   async cancel(cardNo: string, cardType: number = 0): Promise<boolean> {
-    this.log('called cancel');
+    this.log("called cancel");
     this.checkCommunityNo();
-    const batch = new Date().toISOString().replace(/-|:|T/g, '').slice(0, 14);
+    const batch = new Date().toISOString().replace(/-|:|T/g, "").slice(0, 14);
     const sig = this.getSig(batch);
     const url = `${this.apiHost}?c=Qrcode&a=cancelCard&sig=${sig}`;
     const auth = this.getAuth(batch);
@@ -441,49 +622,64 @@ export class Uclbrt {
       cardNo,
       cardType,
     };
-    return this.curlPost(url, auth, data).then(result => {
-      if (!result.info || result.info != 'success') {
-        throw new Error('server returns an unexpected value.');
+    return this.curlPost(url, auth, data).then((result) => {
+      if (!result.info || result.info != "success") {
+        throw new Error("server returns an unexpected value.");
       }
       return true;
     });
   }
 
   async cancelRoomKey(cardNo: string): Promise<boolean> {
-    this.log('called cancelRoomKey');
+    this.log("called cancelRoomKey");
     return this.cancel(cardNo, 0);
   }
 
   async cancelFloorKey(cardNo: string): Promise<boolean> {
-    this.log('called cancelFloorKey');
+    this.log("called cancelFloorKey");
     return this.cancel(cardNo, 1);
   }
 
   async cancelBuildingKey(cardNo: string): Promise<boolean> {
-    this.log('called cancelBuildingKey');
+    this.log("called cancelBuildingKey");
     return this.cancel(cardNo, 2);
   }
 
   async getMacList(): Promise<any> {
-    this.log('called getMacList');
+    this.log("called getMacList");
     this.checkCommunityNo();
     const url = `${this.apiHost}Home/Qrm/getMacList`;
     const data: any = {
       accountSid: this.accountSid,
       communityNo: this.communityNo,
     };
-    data['sig'] = this.getSig2(data);
-    return this.curlPost(url, '', data).then(result => {
+    data["sig"] = this.getSig2(data);
+    return this.curlPost(url, "", data).then((result) => {
       // if(!result.data || !Array.isArray(result.data))
       if (!result.data) {
-        throw new Error('server returns an unexpected value.');
+        throw new Error("server returns an unexpected value.");
       }
       return result.data;
     });
   }
 
-  async makeCard(issueMac: string, buildNo: string, floorNo: string, roomNo: string, endTime: string, creatorAreaCode: string, creatorMobile: string, creatorPassword: string, owner: string = '', opentype: number = 0, ownerGender: number = 1, ownerAreaCode: string = '', ownerMobile: string = '', creatorEmail: string = ''): Promise<boolean> {
-    this.log('called makeCard');
+  async makeCard(
+    issueMac: string,
+    buildNo: string,
+    floorNo: string,
+    roomNo: string,
+    endTime: string,
+    creatorAreaCode: string,
+    creatorMobile: string,
+    creatorPassword: string,
+    owner: string = "",
+    opentype: number = 0,
+    ownerGender: number = 1,
+    ownerAreaCode: string = "",
+    ownerMobile: string = "",
+    creatorEmail: string = ""
+  ): Promise<boolean> {
+    this.log("called makeCard");
     this.checkCommunityNo();
     const url = `${this.apiHost}Home/Qrm/makeRoomCard`;
     const data: any = {
@@ -495,29 +691,44 @@ export class Uclbrt {
       floorNo,
       roomNo,
     };
-    data['sig'] = this.getSig2(data);
-    data['owner'] = owner;
-    data['creatorAreaCode'] = creatorAreaCode;
-    data['creatorMobile'] = creatorMobile;
+    data["sig"] = this.getSig2(data);
+    data["owner"] = owner;
+    data["creatorAreaCode"] = creatorAreaCode;
+    data["creatorMobile"] = creatorMobile;
     // generate md5 hash form creatorPassword
-    const hash = crypto.createHash('md5');
+    const hash = crypto.createHash("md5");
     hash.update(creatorPassword);
-    data['creatorPassword'] = hash.digest('hex');
-    data['opentype'] = opentype;
-    data['ownerGender'] = ownerGender;
-    data['ownerAreaCode'] = ownerAreaCode;
-    data['ownerMobile'] = ownerMobile;
-    data['creatorEmail'] = creatorEmail;
-    return this.curlPost(url, '', data).then(result => {
-      if (!result.info || result.info != 'success') {
-        throw new Error('server returns an unexpected value.');
+    data["creatorPassword"] = hash.digest("hex");
+    data["opentype"] = opentype;
+    data["ownerGender"] = ownerGender;
+    data["ownerAreaCode"] = ownerAreaCode;
+    data["ownerMobile"] = ownerMobile;
+    data["creatorEmail"] = creatorEmail;
+    return this.curlPost(url, "", data).then((result) => {
+      if (!result.info || result.info != "success") {
+        throw new Error("server returns an unexpected value.");
       }
       return true;
     });
   }
 
-  async makeLostCard(issueMac: string, buildNo: string, floorNo: string, roomNo: string, endTime: string, creatorAreaCode: string, creatorMobile: string, creatorPassword: string, owner: string = '', opentype: number = 0, ownerGender: number = 1, ownerAreaCode: string = '', ownerMobile: string = '', creatorEmail: string = ''): Promise<boolean> {
-    this.log('called makeLostCard');
+  async makeLostCard(
+    issueMac: string,
+    buildNo: string,
+    floorNo: string,
+    roomNo: string,
+    endTime: string,
+    creatorAreaCode: string,
+    creatorMobile: string,
+    creatorPassword: string,
+    owner: string = "",
+    opentype: number = 0,
+    ownerGender: number = 1,
+    ownerAreaCode: string = "",
+    ownerMobile: string = "",
+    creatorEmail: string = ""
+  ): Promise<boolean> {
+    this.log("called makeLostCard");
     this.checkCommunityNo();
     const url = `${this.apiHost}Home/Qrm/makeRoomCard`;
     const data: any = {
@@ -529,34 +740,41 @@ export class Uclbrt {
       floorNo,
       roomNo,
     };
-    data['sig'] = this.getSig2(data);
-    data['owner'] = owner;
-    data['creatorAreaCode'] = creatorAreaCode;
-    data['creatorMobile'] = creatorMobile;
+    data["sig"] = this.getSig2(data);
+    data["owner"] = owner;
+    data["creatorAreaCode"] = creatorAreaCode;
+    data["creatorMobile"] = creatorMobile;
     // generate md5 hash form creatorPassword
-    const hash = crypto.createHash('md5');
+    const hash = crypto.createHash("md5");
     hash.update(creatorPassword);
-    data['creatorPassword'] = hash.digest('hex');
-    data['opentype'] = opentype;
-    data['ownerGender'] = ownerGender;
-    data['ownerAreaCode'] = ownerAreaCode;
-    data['ownerMobile'] = ownerMobile;
-    data['creatorEmail'] = creatorEmail;
-    data['isLost'] = creatorEmail;
-    return this.curlPost(url, '', data).then(result => {
-      if (!result.info || result.info != 'success') {
-        throw new Error('server returns an unexpected value.');
+    data["creatorPassword"] = hash.digest("hex");
+    data["opentype"] = opentype;
+    data["ownerGender"] = ownerGender;
+    data["ownerAreaCode"] = ownerAreaCode;
+    data["ownerMobile"] = ownerMobile;
+    data["creatorEmail"] = creatorEmail;
+    data["isLost"] = creatorEmail;
+    return this.curlPost(url, "", data).then((result) => {
+      if (!result.info || result.info != "success") {
+        throw new Error("server returns an unexpected value.");
       }
       return true;
     });
   }
 
-  async readCard(issueMac: string, creatorAreaCode: string, creatorMobile: string, creatorPassword: string, operateCardType: number, creatorEmail: string = ''): Promise<any> {
-    this.log('called readCard');
+  async readCard(
+    issueMac: string,
+    creatorAreaCode: string,
+    creatorMobile: string,
+    creatorPassword: string,
+    operateCardType: number,
+    creatorEmail: string = ""
+  ): Promise<any> {
+    this.log("called readCard");
     this.checkCommunityNo();
     const url = `${this.apiHost}Home/Qrm/readCard`;
     // generate md5 hash form creatorPassword
-    const hash = crypto.createHash('md5');
+    const hash = crypto.createHash("md5");
     hash.update(creatorPassword);
     const data: any = {
       accountSid: this.accountSid,
@@ -564,25 +782,33 @@ export class Uclbrt {
       issueMac,
       creatorAreaCode,
       creatorMobile,
-      creatorPassword: hash.digest('hex'),
+      creatorPassword: hash.digest("hex"),
     };
-    data['sig'] = this.getSig2(data);
-    data['operateCardType'] = operateCardType;
-    data['creatorEmail'] = creatorEmail;
-    return this.curlPost(url, '', data).then(result => {
-      if (!result.info || result.info != 'success') {
-        throw new Error('server returns an unexpected value.');
+    data["sig"] = this.getSig2(data);
+    data["operateCardType"] = operateCardType;
+    data["creatorEmail"] = creatorEmail;
+    return this.curlPost(url, "", data).then((result) => {
+      if (!result.info || result.info != "success") {
+        throw new Error("server returns an unexpected value.");
       }
       return result;
     });
   }
 
-  async cancelCard(issueMac: string, serialNum: string, creatorAreaCode: string, creatorMobile: string, creatorPassword: string, operateCardType: number, creatorEmail: string = ''): Promise<any> {
-    this.log('called cancelCard');
+  async cancelCard(
+    issueMac: string,
+    serialNum: string,
+    creatorAreaCode: string,
+    creatorMobile: string,
+    creatorPassword: string,
+    operateCardType: number,
+    creatorEmail: string = ""
+  ): Promise<any> {
+    this.log("called cancelCard");
     this.checkCommunityNo();
     const url = `${this.apiHost}Home/Qrm/cancelCard`;
     // generate md5 hash form creatorPassword
-    const hash = crypto.createHash('md5');
+    const hash = crypto.createHash("md5");
     hash.update(creatorPassword);
     const data: any = {
       accountSid: this.accountSid,
@@ -591,22 +817,22 @@ export class Uclbrt {
       serialNum,
       creatorAreaCode,
       creatorMobile,
-      creatorPassword: hash.digest('hex'),
+      creatorPassword: hash.digest("hex"),
     };
-    data['sig'] = this.getSig2(data);
-    data['operateCardType'] = operateCardType;
-    data['creatorEmail'] = creatorEmail;
-    return this.curlPost(url, '', data).then(result => {
-      if (!result.info || result.info != 'success') {
-        throw new Error('server returns an unexpected value.');
+    data["sig"] = this.getSig2(data);
+    data["operateCardType"] = operateCardType;
+    data["creatorEmail"] = creatorEmail;
+    return this.curlPost(url, "", data).then((result) => {
+      if (!result.info || result.info != "success") {
+        throw new Error("server returns an unexpected value.");
       }
       return result;
     });
   }
 
   async getRoomCardInfo(cardString: string): Promise<any> {
-    this.log('called getRoomCardInfo');
-    const batch = new Date().toISOString().replace(/-|:|T/g, '').slice(0, 14);
+    this.log("called getRoomCardInfo");
+    const batch = new Date().toISOString().replace(/-|:|T/g, "").slice(0, 14);
     const sig = this.getSig(batch);
     const url = `${this.apiHost}?c=Qrcode&a=getRoomCardInfo&sig=${sig}`;
     const auth = this.getAuth(batch);
@@ -614,16 +840,24 @@ export class Uclbrt {
       communityNo: this.communityNo,
       cardString,
     };
-    return this.curlPost(url, auth, data).then(result => {
-      if (!result.info || result.info != 'success') {
-        throw new Error('server returns an unexpected value.');
+    return this.curlPost(url, auth, data).then((result) => {
+      if (!result.info || result.info != "success") {
+        throw new Error("server returns an unexpected value.");
       }
       return result.data;
     });
   }
 
-  async getRecordsByRoom(buildNo: string, floorNo: string, roomNo: string, startDate: string, endDate: string, recordType: number = 0, holderFrom: number = 0): Promise<any> {
-    this.log('called getRecordsByRoom');
+  async getRecordsByRoom(
+    buildNo: string,
+    floorNo: string,
+    roomNo: string,
+    startDate: string,
+    endDate: string,
+    recordType: number = 0,
+    holderFrom: number = 0
+  ): Promise<any> {
+    this.log("called getRecordsByRoom");
     const data: any = {
       accountSid: this.accountSid,
       timestamp: Math.floor(Date.now() / 1000),
@@ -637,48 +871,47 @@ export class Uclbrt {
       recordType,
       holderFrom,
     };
-    data['sig'] = this.getSig3(data);
+    data["sig"] = this.getSig3(data);
     const url = `${this.apiHost}Home/Records/queryByRoom`;
-    return this.curlPost(url, '', data).then(result => {
+    return this.curlPost(url, "", data).then((result) => {
       if (!result.data) {
-        throw new Error('server returns an unexpected value.');
+        throw new Error("server returns an unexpected value.");
       }
       return result.data;
     });
   }
 
   async fetchRoomInfo(): Promise<any> {
-    this.log('called fetchRoomInfo');
+    this.log("called fetchRoomInfo");
     const data: any = {
       accountSid: this.accountSid,
       timestamp: Math.floor(Date.now() / 1000),
       communityNo: this.communityNo,
     };
-    data['sig'] = this.getSig3(data);
+    data["sig"] = this.getSig3(data);
     const url = `${this.apiHost}Home/Records/fetchRoomInfo`;
-    return this.curlPost(url, '', data).then(result => {
+    return this.curlPost(url, "", data).then((result) => {
       if (!result.data) {
-        throw new Error('server returns an unexpected value.');
+        throw new Error("server returns an unexpected value.");
       }
       return result.data;
     });
   }
 
   async getBoxInfo(): Promise<any> {
-    this.log('called getBoxInfo');
+    this.log("called getBoxInfo");
     const data: any = {
       accountSid: this.accountSid,
       timestamp: Math.floor(Date.now() / 1000),
       communityNo: this.communityNo,
     };
-    data['sig'] = this.getSig3(data);
+    data["sig"] = this.getSig3(data);
     const url = `${this.apiHost}Home/Records/getBoxInfo`;
-    return this.curlPost(url, '', data).then(result => {
+    return this.curlPost(url, "", data).then((result) => {
       if (!result.data) {
-        throw new Error('server returns an unexpected value.');
+        throw new Error("server returns an unexpected value.");
       }
       return result.data;
     });
   }
-
 }
