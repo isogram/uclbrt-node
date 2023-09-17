@@ -5,7 +5,7 @@ import https from 'https';
 import qs from 'querystring';
 import fs from 'fs';
 
-const LIB_VERSION = '1.0.2';
+const LIB_VERSION = '1.0.3';
 
 type ContentType = 'application/x-www-form-urlencoded' | 'application/json';
 

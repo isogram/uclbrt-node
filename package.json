@@ -1,6 +1,6 @@
 {
   "name": "uclbrt-node",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "uclbrt SDK for  NodeJS",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
