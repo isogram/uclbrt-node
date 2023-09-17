@@ -5,7 +5,7 @@ import https from 'https';
 import qs from 'querystring';
 import fs from 'fs';
 
-const LIB_VERSION = '1.0.4';
+const LIB_VERSION = '1.0.5';
 
 type ContentType = 'application/x-www-form-urlencoded' | 'application/json';
 
@@ -533,7 +533,7 @@ export class Uclbrt {
       cardNo,
       cardType,
     };
-    return this.curlPost(url, auth, data).then((result) => {
+    return this.curlPost(url, auth, data, 'application/json').then((result) => {
       if (!result.info || result.info != 'success') {
         throw new Error('server returns an unexpected value.');
       }
