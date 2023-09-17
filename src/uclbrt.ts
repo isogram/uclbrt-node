@@ -5,7 +5,7 @@ import https from 'https';
 import qs from 'querystring';
 import fs from 'fs';
 
-const LIB_VERSION = '1.0.5';
+const LIB_VERSION = '1.0.6';
 
 type ContentType = 'application/x-www-form-urlencoded' | 'application/json';
 
@@ -327,7 +327,7 @@ export class Uclbrt {
       times: 0,
       isLost: 1,
     };
-    return this.curlPost(url, auth, data).then((result) => {
+    return this.curlPost(url, auth, data, 'application/json').then((result) => {
       if (!result.cardNo) {
         throw new Error('the cardNo is not found in the return result of the server.');
       }
@@ -366,7 +366,7 @@ export class Uclbrt {
       endTime: endTimeHour,
       cipherType,
     };
-    return this.curlPost(url, auth, data).then((result) => {
+    return this.curlPost(url, auth, data, 'application/json').then((result) => {
       if (!result.cardNo) {
         throw new Error('the cardNo is not found in the return result of the server.');
       }
@@ -385,7 +385,7 @@ export class Uclbrt {
       cardNo,
       wholeRoom: wholeRoom ? 1 : 0,
     };
-    return this.curlPost(url, auth, data).then((result) => {
+    return this.curlPost(url, auth, data, 'application/json').then((result) => {
       if (!result.status || result.status != 200) {
         throw new Error(result.info);
       }
@@ -751,7 +751,7 @@ export class Uclbrt {
       communityNo: this.communityNo.toString(),
       cardString,
     };
-    return this.curlPost(url, auth, data).then((result) => {
+    return this.curlPost(url, auth, data, 'application/json').then((result) => {
       if (!result.info || result.info != 'success') {
         throw new Error('server returns an unexpected value.');
       }
