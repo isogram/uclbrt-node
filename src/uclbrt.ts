@@ -5,7 +5,7 @@ import https from 'https';
 import qs from 'querystring';
 import fs from 'fs';
 
-const LIB_VERSION = '1.0.3';
+const LIB_VERSION = '1.0.4';
 
 type ContentType = 'application/x-www-form-urlencoded' | 'application/json';
 
@@ -462,7 +462,7 @@ export class Uclbrt {
       resultType,
       openEndTime: this.toCommunityTime(openEndTime),
     };
-    return this.curlPost(url, auth, data);
+    return this.curlPost(url, auth, data, 'application/json');
   }
 
   async getRoomKeyImage(mobile: string, areaCode: string, cardNo: string, openEndTime: string = ''): Promise<string> {
