@@ -30,6 +30,7 @@
   },
   "type": "commonjs",
   "files": [
-    "dist/**/*"
+    "dist/**/*",
+    "resources/**/*"
   ]
 }

@@ -3,6 +3,7 @@ import * as crypto from 'crypto';
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import https from 'https';
 import qs from 'querystring';
+import fs from 'fs';
 
 const LIB_VERSION = '1.0.2';
 
@@ -17,15 +18,7 @@ export class Uclbrt {
   communityTimezone: string;
   communityNo: number;
   localTimezone: string;
-  publicKey: string = `-----BEGIN PUBLIC KEY-----
-    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqxqOJg0kqL4/xoNf0iDb
-    jz/oM7ujsXOd92vQDkwO/rCP9wwZY0AvrMhcc56X4LmIbsbc1EZQ5ryMrIDbyCgt
-    pgJJTQG/u/FBiwG2Yvqgx+9keVGZhBA+Oph34HFPWz4OEB+Py4QkaJPXALkjjh2Z
-    f7Lgpv5gO8gRyg/o9FwCOZyEGiUmVorwPvwT3oMeNPCHxzlpGzdqV1kfqNmbS4Zk
-    CiXGNhxxN0LJDnhaJJUl4bcnUjpcIxUlgSMX2CcooffIk3E1ROP051Xf/zmUWE6D
-    TcGetf6ni2s2irDCgeanylyjLTgM6xaOYWqtG0yUC5lyzO46yTmE1Q47XMM2h1KJ
-    swIDAQAB
-    -----END PUBLIC KEY-----`;
+  publicKey: Buffer | string;
 
   constructor(config: UserConfig) {
     const defaultConfig: UserConfig = {
@@ -57,6 +50,14 @@ export class Uclbrt {
     this.debug = mergedConfig.debug || false;
     this.communityTimezone = 'Asia/Shanghai';
     this.localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    // load public key from file publicKey.pem using fs
+    // get current path of this file
+    const currentPath = process.cwd() + '/node_modules/uclbrt-node/resources';
+    // get absolute path of publicKey.pem
+    const publicKeyPath = `${currentPath}/public.pem`;
+    this.publicKey = Buffer.from(
+      fs.readFileSync(publicKeyPath, { encoding: "utf-8" })
+    );
   }
 
   protected objectToQuery(data: { [key: string]: any }): string {
@@ -409,11 +410,16 @@ export class Uclbrt {
       cardType,
     };
 
-    const query = this.objectToQuery(data);
-    const encrypted = this.publicEncrypt(query);
-    const link = `${this.cardHost}apiLogin/?data=${encodeURIComponent(encrypted)}`;
-    this.log('got link:', link);
-    return link;
+    try {
+      const query = this.objectToQuery(data);
+      const encrypted = this.publicEncrypt(query);
+      const link = `${this.cardHost}apiLogin/?data=${encodeURIComponent(encrypted)}`;
+      this.log('got link:', link);
+      return link;
+    } catch (error : any) {
+      this.log('error:', error);
+      throw new Error('failed to generate link.');
+    }
   }
 
   async getRoomKeyLink(mobile: string, areaCode: string, cardNo: string = ''): Promise<string> {
