@@ -6,6 +6,8 @@ import qs from 'querystring';
 
 const LIB_VERSION = '1.0.1';
 
+type ContentType = 'application/x-www-form-urlencoded' | 'application/json';
+
 export class Uclbrt {
   accountSid: string;
   authToken: string;
@@ -133,7 +135,12 @@ export class Uclbrt {
     }
   }
 
-  protected async curlPost(url: string, auth: string, data: any): Promise<any> {
+  protected async curlPost(
+    url: string,
+    auth: string,
+    data: any,
+    contentType: ContentType = 'application/x-www-form-urlencoded'
+  ): Promise<any> {
     this.log('request url:', url);
     if (!crypto.createHash) {
       throw new Error('cURL functions are not available.');
@@ -141,7 +148,7 @@ export class Uclbrt {
 
     const headers: { [key: string]: string } = {
       Accept: 'application/json',
-      'Content-Type': 'application/x-www-form-urlencoded',
+      'Content-Type': contentType,
       'User-Agent': 'uclbrt-nodejs/' + LIB_VERSION,
     };
 
@@ -154,7 +161,12 @@ export class Uclbrt {
       method: 'post',
       url: url,
       headers,
-      data: data ? qs.stringify(data) : undefined,
+      ...(contentType === 'application/json' && {
+        data: data || undefined,
+      }),
+      ...(contentType === 'application/x-www-form-urlencoded' && {
+        data: data ? qs.stringify(data) : undefined,
+      }),
       maxRedirects: 3,
       timeout: 30000,
       httpsAgent: new https.Agent({ rejectUnauthorized: false }),
@@ -238,7 +250,7 @@ export class Uclbrt {
       times,
       opentype,
     };
-    return this.curlPost(url, auth, data).then((result) => {
+    return this.curlPost(url, auth, data, 'application/json').then((result) => {
       if (!result.cardNo) {
         throw new Error('the cardNo is not found in the return result of the server.');
       }
