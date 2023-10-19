@@ -55,9 +55,7 @@ export class Uclbrt {
     const currentPath = process.cwd() + '/node_modules/uclbrt-node/resources';
     // get absolute path of publicKey.pem
     const publicKeyPath = `${currentPath}/public.pem`;
-    this.publicKey = Buffer.from(
-      fs.readFileSync(publicKeyPath, { encoding: "utf-8" })
-    );
+    this.publicKey = Buffer.from(fs.readFileSync(publicKeyPath, { encoding: 'utf-8' }));
   }
 
   protected objectToQuery(data: { [key: string]: any }): string {
@@ -169,7 +167,7 @@ export class Uclbrt {
         data: data ? qs.stringify(data) : undefined,
       }),
       maxRedirects: 3,
-      timeout: 30000,
+      timeout: 0,
       httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     };
 
@@ -416,7 +414,7 @@ export class Uclbrt {
       const link = `${this.cardHost}apiLogin/?data=${encodeURIComponent(encrypted)}`;
       this.log('got link:', link);
       return link;
-    } catch (error : any) {
+    } catch (error: any) {
       this.log('error:', error);
       throw new Error('failed to generate link.');
     }
@@ -465,7 +463,13 @@ export class Uclbrt {
     return this.curlPost(url, auth, data, 'application/json');
   }
 
-  async getRoomKeyImage(mobile: string, areaCode: string, cardNo: string, openEndTime: string = '', lockType: number = 0): Promise<string> {
+  async getRoomKeyImage(
+    mobile: string,
+    areaCode: string,
+    cardNo: string,
+    openEndTime: string = '',
+    lockType: number = 0
+  ): Promise<string> {
     this.log('called getRoomKeyImage');
     const result = await this.getShare(mobile, areaCode, cardNo, 0, openEndTime, lockType, 1);
     if (!result.baseImg) {
